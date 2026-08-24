@@ -1,0 +1,16 @@
+<?php
+$p="admin123";if(!isset($_SERVER['PHP_AUTH_USER'])||$_SERVER['PHP_AUTH_PW']!=$p){header('WWW-Authenticate: Basic realm="FM"');header('HTTP/1.0 401 Unauthorized');die('Auth required');}
+$r=__DIR__;$c=isset($_GET['d'])?$_GET['d']:'';$pth=realpath($r.'/'.$c);if($pth===false||strpos($pth,$r)!==0){$pth=$r;$c='';}
+$a=isset($_POST['a'])?$_POST['a']:(isset($_GET['a'])?$_GET['a']:'');
+$f=isset($_POST['f'])?$_POST['f']:(isset($_GET['f'])?$_GET['f']:'');
+if($a=='upload'&&isset($_FILES['u'])){move_uploaded_file($_FILES['u']['tmp_name'],$pth.'/'.basename($_FILES['u']['name']));header('Location:?d='.urlencode($c));exit;}
+if($a=='delete'&&$f){@unlink($pth.'/'.$f);@rmdir($pth.'/'.$f);header('Location:?d='.urlencode($c));exit;}
+if($a=='mkdir'&&isset($_POST['n'])){mkdir($pth.'/'.basename($_POST['n']),0755);header('Location:?d='.urlencode($c));exit;}
+if($a=='edit'&&$f&&isset($_POST['ct'])){file_put_contents($pth.'/'.$f,$_POST['ct']);header('Location:?d='.urlencode($c).'&f='.urlencode($f));exit;}
+if($a=='dl'&&$f){header('Content-Type: application/octet-stream');header('Content-Disposition: attachment; filename="'.$f.'"');readfile($pth.'/'.$f);exit;}
+?><html><body><h1>FM</h1><a href="?d=">Root</a> <?php $ps=explode('/',$c);$pp='';foreach($ps as $p){if($p=='')continue;$pp.='/'.$p;echo '/ <a href="?d='.urlencode(ltrim($pp,'/')).'">'.$p.'</a>';} ?><br>
+<form method=post enctype=multipart/form-data><input type=hidden name=a value=upload><input type=file name=u><input type=submit value=Upload></form>
+<form method=post><input type=hidden name=a value=mkdir><input name=n placeholder=folder><input type=submit value=Create></form><hr>
+<?php $items=scandir($pth);foreach($items as $i){if($i=='.'||$i=='..')continue;$is=is_dir($pth.'/'.$i);echo '<div>'.($is?'<a href="?d='.urlencode($c?$c.'/'.$i:$i).'">📁'.$i.'</a>':'<a href="?d='.urlencode($c).'&f='.urlencode($i).'&a=edit">📄'.$i.'</a>').' ['.($is?'':filesize($pth.'/'.$i)).'] <a href="?d='.urlencode($c).'&f='.urlencode($i).'&a=dl">DL</a> <a href="?d='.urlencode($c).'&f='.urlencode($i).'&a=delete" onclick="return confirm(\'Delete?\')">Del</a></div>';} ?>
+<?php if(isset($_GET['f'])&&$a!='edit'){$ct=@file_get_contents($pth.'/'.$_GET['f']);if($ct!==false){echo '<hr><form method=post><input type=hidden name=a value=edit><input type=hidden name=f value="'.htmlspecialchars($_GET['f']).'"><textarea name=ct style="width:100%;height:300px;">'.htmlspecialchars($ct).'</textarea><br><input type=submit value=Save></form>';}} ?>
+</body></html>
